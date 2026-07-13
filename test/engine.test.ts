@@ -1,16 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { checkAd } from "../src/engine.js";
+import type { Ruleset } from "../src/types.js";
 
 describe("checkAd — end to end", () => {
   it("passes a clean structure-function ad (green, 1/10, low ban risk)", () => {
-    const r = checkAd(
-      {
-        primaryText:
-          "Supports thicker-looking, healthier hair with GHK-Cu. Part of your daily routine.",
-        headline: "Healthy hair support",
-      },
-      { ruleset: "maneup" },
-    );
+    const r = checkAd({
+      primaryText:
+        "Supports thicker-looking, healthier hair with GHK-Cu. Part of your daily routine.",
+      headline: "Healthy hair support",
+    });
     expect(r.flags).toHaveLength(0);
     expect(r.rejectionRisk).toBe(1);
     expect(r.band).toBe("green");
@@ -19,13 +17,10 @@ describe("checkAd — end to end", () => {
   });
 
   it("fails an overtly violating ad (red, 10/10, high ban risk)", () => {
-    const r = checkAd(
-      {
-        primaryText:
-          "Embarrassed by your thinning hair? Prescription-strength, clinically proven to regrow hair and reverse hair loss — 40% more, guaranteed.",
-      },
-      { ruleset: "maneup" },
-    );
+    const r = checkAd({
+      primaryText:
+        "Embarrassed by your thinning hair? Prescription-strength, clinically proven to reverse hair loss — 40% more, guaranteed.",
+    });
     expect(r.rejectionRisk).toBe(10);
     expect(r.band).toBe("red");
     expect(r.accountBanRisk).toBe("high");
@@ -89,30 +84,34 @@ describe("checkAd — end to end", () => {
     expect(r.ruleset).toBe("meta-health");
   });
 
-  it("catches maneup preset rules folded in from the standalone checker", () => {
-    const fix = checkAd(
-      { primaryText: "Finally fix your thinning crown." },
-      { ruleset: "maneup" },
-    );
-    expect(fix.flags.some((f) => f.ruleId === "fix-condition")).toBe(true);
-    expect(fix.band).toBe("red");
-
-    const dosing = checkAd(
-      { primaryText: "Each application delivers 5mg of actives. Anti-aging support." },
-      { ruleset: "maneup" },
-    );
-    const ids = dosing.flags.map((f) => f.ruleId);
-    expect(ids).toContain("caution-mg-dosing");
-    expect(ids).toContain("caution-anti-aging");
-    expect(dosing.band).toBe("green"); // cautions only
+  it("applies rules from a brand preset that extends meta-health", () => {
+    const preset: Ruleset = {
+      id: "test-brand",
+      name: "Test Brand",
+      extends: "meta-health",
+      rules: [
+        {
+          id: "brand-regrow",
+          tier: "critical",
+          category: "disease-claim",
+          pattern: /\bregrow\b/i,
+          message: "regrowth claim",
+        },
+      ],
+    };
+    const r = checkAd({ primaryText: "Regrow your hair." }, { ruleset: preset });
+    expect(r.flags.some((f) => f.ruleId === "brand-regrow")).toBe(true);
+    expect(r.band).toBe("red");
+    // and the inherited meta-health rules still fire
+    const r2 = checkAd({ primaryText: "Guaranteed regrowth cure." }, { ruleset: preset });
+    expect(r2.flags.some((f) => f.ruleId === "disease-treatment-verb")).toBe(true);
   });
 
   it("orders flags most-severe-first", () => {
-    const r = checkAd(
-      { primaryText: "Try our detox to regrow hair, guaranteed." },
-      { ruleset: "maneup" },
-    );
-    // first flag should be critical (regrow), not the caution (detox)
+    const r = checkAd({
+      primaryText: "Try our detox — it cures shedding, guaranteed.",
+    });
+    // first flag should be critical (cures), not the caution (detox)
     expect(r.flags[0]?.tier).toBe("critical");
     expect(r.flags.at(-1)?.tier).toBe("caution");
   });

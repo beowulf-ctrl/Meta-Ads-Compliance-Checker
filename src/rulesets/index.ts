@@ -4,7 +4,6 @@
  */
 import type { Ruleset } from "../types.js";
 import { metaHealth } from "./meta-health.js";
-import { maneup } from "./presets/maneup.js";
 
 const registry = new Map<string, Ruleset>();
 
@@ -24,7 +23,7 @@ export function listRulesets(): string[] {
 }
 
 /** Rulesets shipped with adlint. */
-export const BUILTIN: Ruleset[] = [metaHealth, maneup];
+export const BUILTIN: Ruleset[] = [metaHealth];
 for (const rs of BUILTIN) registerRuleset(rs);
 
-export { metaHealth, maneup };
+export { metaHealth };

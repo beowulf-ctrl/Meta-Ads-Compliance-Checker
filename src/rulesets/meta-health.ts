@@ -2,7 +2,7 @@
  * Generic Meta (Facebook/Instagram) Health & Wellness ruleset.
  *
  * Reusable by any health/DTC advertiser. Brand- or niche-specific patterns
- * belong in a preset that `extends: "meta-health"` (see presets/maneup.ts).
+ * belong in your own preset that `extends: "meta-health"` (see README).
  *
  * Policy grounding: Meta Advertising Standards — Health & Wellness and
  * Drugs & Pharmaceuticals (transparency.meta.com/policies/ad-standards).

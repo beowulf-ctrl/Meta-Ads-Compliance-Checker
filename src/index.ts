@@ -7,12 +7,11 @@
  * @example
  * import { checkAd } from "adlint";
  *
- * const result = checkAd(
- *   { primaryText: "Regrow your hair — 40% more in 90 days, guaranteed." },
- *   { ruleset: "maneup" },
- * );
+ * const result = checkAd({
+ *   primaryText: "Cure your hair loss — 40% more in 90 days, guaranteed.",
+ * });
  * console.log(result.rejectionRisk, result.band, result.accountBanRisk);
- * // 10 "red" "high"
+ * // 9 "red" "elevated"
  *
  * @packageDocumentation
  */
@@ -30,7 +29,6 @@ export {
   registerRuleset,
   listRulesets,
   metaHealth,
-  maneup,
   BUILTIN,
 } from "./rulesets/index.js";
 

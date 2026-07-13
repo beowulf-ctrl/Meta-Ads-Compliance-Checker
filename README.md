@@ -2,7 +2,7 @@
 
 **A linter for advertising copy.** Score ads against ad-platform policy — starting with Meta (Facebook/Instagram) Health & Wellness — *before* you launch, so a rejected ad never turns into a banned account.
 
-**▶ Try it live: [meta-ads-compliance-checker.vercel.app](https://meta-ads-compliance-checker.vercel.app)** — the web checker, generated from this engine. ([/maneup](https://meta-ads-compliance-checker.vercel.app/maneup) shows the same checker with a brand preset layered on — a template for your own.)
+**▶ Try it live: [meta-ads-compliance-checker.vercel.app](https://meta-ads-compliance-checker.vercel.app)** — the web checker, generated from this engine.
 
 - 🧩 **Pluggable rulesets** — rules are plain data; add one without touching the engine.
 - 🔌 **Zero dependencies, zero network calls** — runs in Node and the browser.
@@ -22,14 +22,11 @@ npm install adlint
 ```ts
 import { checkAd } from "adlint";
 
-const result = checkAd(
-  {
-    primaryText: "Regrow your hair — 40% more in 90 days, guaranteed.",
-    landingPage: "The #1 way to reverse hair loss.",
-    creative: { beforeAfter: true },
-  },
-  { ruleset: "maneup" }, // or "meta-health" (the generic default)
-);
+const result = checkAd({
+  primaryText: "Cure your hair loss — 40% more in 90 days, guaranteed.",
+  landingPage: "The #1 way to reverse hair loss.",
+  creative: { beforeAfter: true },
+});
 
 console.log(result.rejectionRisk); // 10
 console.log(result.band);          // "red"
@@ -83,9 +80,10 @@ interface AdInput {
 ## Rulesets & presets
 
 - **`meta-health`** — the generic Meta Health & Wellness ruleset. A good default for any health/DTC advertiser.
-- **`maneup`** — a men's hair-loss/hormone preset that `extends` `meta-health` with niche rules (regrowth, testosterone, peptide compounds). Use it as a template for your own brand preset.
 
-Bring your own ruleset inline:
+Brand- or niche-specific patterns belong in your own preset that
+`extends: "meta-health"` — which can live in your codebase (even a private
+one) while the engine stays a dependency. Bring it inline:
 
 ```ts
 import { checkAd, type Ruleset } from "adlint";
@@ -143,7 +141,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) to add rules or a whole ruleset. New ru
 | `resolveRuleset(idOrObj)` | Flatten a ruleset's `extends` chain. |
 | `registerRuleset(rs)` / `getRuleset(id)` / `listRulesets()` | Registry helpers. |
 | `score`, `rejectionRisk`, `accountBanRisk`, `bandFor`, `verdictFor` | Scoring primitives. |
-| `metaHealth`, `maneup`, `BUILTIN` | Built-in rulesets. |
+| `metaHealth`, `BUILTIN` | Built-in rulesets. |
 
 ## Web checker
 
@@ -155,10 +153,10 @@ the rules never fork:
 npm run build:web   # writes public/ — open either page in any browser
 ```
 
-Two variants are generated from one template (`web/template.html`), configured
-in `scripts/build-web.mjs`: the generic checker at `public/index.html` and a
-brand-preset example at `public/maneup/index.html`. Adding your own variant is
-one entry in the `VARIANTS` array.
+Variants are generated from one template (`web/template.html`), configured in
+`scripts/build-web.mjs`. Shipping a branded checker with your own preset is
+one entry in the `VARIANTS` array — or use the exported `renderChecker` /
+`bundleEngine` helpers from your own repo with adlint as a dependency.
 
 The bundle is self-contained and offline-friendly; only the optional image OCR
 (tesseract.js, lazy-loaded from a CDN on first use) needs a connection.

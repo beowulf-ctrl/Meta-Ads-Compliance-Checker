@@ -11,7 +11,7 @@ const ad = JSON.parse(
   readFileSync(new URL("./ad.json", import.meta.url), "utf8"),
 ) as AdInput;
 
-const result = checkAd(ad, { ruleset: "maneup" });
+const result = checkAd(ad, { ruleset: "meta-health" });
 
 console.log(`Rejection risk: ${result.rejectionRisk}/10 (${result.band})`);
 console.log(`Account ban risk: ${result.accountBanRisk} — ${result.banReason}`);

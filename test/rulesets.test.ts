@@ -8,20 +8,34 @@ import {
 import type { Ruleset } from "../src/types.js";
 
 describe("registry", () => {
-  it("ships meta-health and maneup", () => {
-    expect(listRulesets()).toEqual(
-      expect.arrayContaining(["meta-health", "maneup"]),
-    );
+  it("ships meta-health", () => {
+    expect(listRulesets()).toEqual(expect.arrayContaining(["meta-health"]));
     expect(getRuleset("meta-health")).toBeDefined();
   });
 });
 
+const brandPreset: Ruleset = {
+  id: "brand-preset",
+  name: "Brand Preset",
+  extends: "meta-health",
+  rules: [
+    {
+      id: "brand-regrow",
+      tier: "critical",
+      category: "disease-claim",
+      pattern: /\bregrow\b/i,
+      message: "regrowth claim",
+    },
+  ],
+};
+
 describe("resolveRuleset", () => {
   it("inherits parent rules through extends", () => {
-    const resolved = resolveRuleset("maneup");
+    registerRuleset(brandPreset);
+    const resolved = resolveRuleset("brand-preset");
     const ids = resolved.rules.map((r) => r.id);
     // own rule
-    expect(ids).toContain("hair-regrow");
+    expect(ids).toContain("brand-regrow");
     // inherited rule from meta-health
     expect(ids).toContain("disease-treatment-verb");
     // inherited signals too
@@ -31,9 +45,10 @@ describe("resolveRuleset", () => {
   });
 
   it("keeps its own id/name after resolving", () => {
-    const resolved = resolveRuleset("maneup");
-    expect(resolved.id).toBe("maneup");
-    expect(resolved.name).toContain("Maneup");
+    registerRuleset(brandPreset);
+    const resolved = resolveRuleset("brand-preset");
+    expect(resolved.id).toBe("brand-preset");
+    expect(resolved.name).toBe("Brand Preset");
   });
 
   it("throws on an unknown ruleset", () => {
