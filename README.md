@@ -147,7 +147,10 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) to add rules or a whole ruleset. New ru
 
 A single-file web UI (paste your ad fields, tick the creative signals, drop the
 ad image to OCR its on-image text) is generated straight from the engine, so
-the rules never fork:
+the rules never fork. The **"＋ Add your own"** button in the header lets anyone
+define a custom ruleset as JSON right in the browser — it extends
+`meta-health`, is validated on save, and persists in localStorage (nothing is
+uploaded):
 
 ```bash
 npm run build:web   # writes public/ — open either page in any browser

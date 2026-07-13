@@ -17,6 +17,21 @@
   .sub{color:var(--muted);font-size:13px;margin-top:4px}
   .ruleset{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
   select{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:13px}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:8px;
+    padding:7px 12px;font-size:13px;cursor:pointer}
+  button.ghost:hover{border-color:var(--accent)}
+  .ruleset a{color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:10}
+  .dialog{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+    width:min(660px,92vw);max-height:86vh;overflow:auto}
+  .dialog h2{margin:0 0 6px;font-size:17px}
+  .dialog .hint{color:var(--muted);font-size:13px;margin:0 0 12px;line-height:1.55}
+  .dialog .hint code{background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .dialog textarea{width:100%;min-height:280px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:12.5px;background:var(--bg);line-height:1.5}
+  .dialog .err{color:var(--red);font-size:13px;min-height:18px;margin-top:8px;white-space:pre-wrap}
+  .dialog .row{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+  .dialog button.primary{width:auto;margin-top:0;padding:9px 18px;font-size:13px}
   .wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:calc(100vh - 84px)}
   @media(max-width:900px){.wrap{grid-template-columns:1fr}}
   .col{padding:22px 26px}
@@ -66,6 +81,8 @@
   <div class="ruleset" id="rulesetWrap">
     <span>Ruleset</span>
     <select id="ruleset"></select>
+    <button class="ghost" id="rsAdd" title="Add your own ruleset — rules are plain data">＋ Add your own</button>
+    <a id="rsRemove" hidden title="Delete this custom ruleset from your browser">remove</a>
   </div>
 </header>
 <div class="wrap">
@@ -99,6 +116,25 @@
     <div id="out"><div class="empty">Fill in the ad on the left — results update live as you type.</div></div>
   </div>
 </div>
+<div class="overlay" id="rsOverlay" hidden>
+  <div class="dialog">
+    <h2>Add your own ruleset</h2>
+    <p class="hint">
+      Rules are plain data — no code. Set <code>extends: "meta-health"</code> to keep every generic
+      rule and layer your brand's patterns on top. Each rule needs an <code>id</code>, a
+      <code>tier</code> (<code>critical</code> / <code>high</code> / <code>caution</code>), a
+      <code>pattern</code> (case-insensitive regex), and a <code>message</code>; <code>fix</code> and
+      <code>drugAdjacent</code> are optional. Below is a working example — edit it and hit save.
+      Custom rulesets live only in <b>your browser</b> (localStorage); nothing is uploaded.
+    </p>
+    <textarea id="rsJson" spellcheck="false"></textarea>
+    <div class="err" id="rsErr"></div>
+    <div class="row">
+      <button class="ghost" id="rsCancel">Cancel</button>
+      <button class="primary" id="rsSave">Save ruleset</button>
+    </div>
+  </div>
+</div>
 <script>
 /*__ADLINT_BUNDLE__*/
 </script>
@@ -109,15 +145,126 @@ const $ = (id) => document.getElementById(id);
 const CONFIG = "__ADLINT_CONFIG__";
 
 // ── Ruleset picker ────────────────────────────────────────────────────────────
-for (const id of CONFIG.rulesets) {
-  const rs = adlint.getRuleset(id);
+function addOption(id, name, isCustom) {
   const opt = document.createElement("option");
   opt.value = id;
-  opt.textContent = rs ? rs.name : id;
-  if (id === CONFIG.defaultRuleset) opt.selected = true;
+  opt.textContent = isCustom ? `${name} — custom` : name;
+  opt.dataset.custom = isCustom ? "1" : "";
   $("ruleset").appendChild(opt);
+  return opt;
 }
-if (CONFIG.rulesets.length < 2) $("rulesetWrap").style.display = "none";
+for (const id of CONFIG.rulesets) {
+  const rs = adlint.getRuleset(id);
+  const opt = addOption(id, rs ? rs.name : id, false);
+  if (id === CONFIG.defaultRuleset) opt.selected = true;
+}
+
+// ── Custom rulesets (stored in localStorage, registered live) ────────────────
+const CUSTOM_KEY = "adlint-custom-rulesets";
+const EXAMPLE_RULESET = {
+  id: "my-brand",
+  name: "My Brand",
+  extends: "meta-health",
+  rules: [
+    {
+      id: "no-melts-fat",
+      tier: "critical",
+      category: "disease-claim",
+      pattern: "\\bmelts?\\s+(away\\s+)?fat\\b",
+      message: "'Melts fat' is a physical-change health claim.",
+      fix: "supports your routine alongside diet and exercise",
+    },
+    {
+      id: "caution-miracle-ingredient",
+      tier: "caution",
+      category: "buzzword",
+      pattern: "\\bmiracle\\s+ingredient\\b",
+      message: "Buzzword that reviewers sometimes treat as a claim.",
+    },
+  ],
+};
+
+function readStore() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || []; } catch { return []; }
+}
+function writeStore(list) { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); }
+
+function parsePattern(p) {
+  const m = /^\/(.*)\/([a-z]*)$/.exec(p); // allow "/…/flags" or a bare source string
+  const [src, flags] = m ? [m[1], m[2]] : [p, ""];
+  return new RegExp(src, flags.includes("i") ? flags : flags + "i");
+}
+
+const TIERS = ["critical", "high", "caution"];
+/** Validate a plain-JSON ruleset definition; returns a registered-ready Ruleset. */
+function toRuleset(def) {
+  if (!def || typeof def !== "object" || Array.isArray(def)) throw new Error("Top level must be an object.");
+  if (!def.id || !/^[a-z0-9][a-z0-9-]*$/.test(def.id)) throw new Error('"id" must be kebab-case, e.g. "my-brand".');
+  if (CONFIG.rulesets.includes(def.id)) throw new Error(`"${def.id}" is a built-in ruleset id — pick another.`);
+  if (!def.name || typeof def.name !== "string") throw new Error('"name" (string) is required.');
+  if (def.extends && !adlint.getRuleset(def.extends)) throw new Error(`extends: unknown ruleset "${def.extends}".`);
+  if (!Array.isArray(def.rules) || def.rules.length === 0) throw new Error('"rules" must be a non-empty array.');
+  const rules = def.rules.map((r, i) => {
+    const at = `rules[${i}]`;
+    if (!r.id || typeof r.id !== "string") throw new Error(`${at}: "id" is required.`);
+    if (!TIERS.includes(r.tier)) throw new Error(`${at}: "tier" must be one of ${TIERS.join(" / ")}.`);
+    if (!r.pattern || typeof r.pattern !== "string") throw new Error(`${at}: "pattern" (string regex) is required.`);
+    if (!r.message || typeof r.message !== "string") throw new Error(`${at}: "message" is required.`);
+    let pattern;
+    try { pattern = parsePattern(r.pattern); }
+    catch (e) { throw new Error(`${at}: invalid regex — ${e.message}`); }
+    return { ...r, category: r.category || "custom", pattern };
+  });
+  return { id: def.id, name: def.name, description: def.description, extends: def.extends, rules };
+}
+
+function registerCustom(def) {
+  adlint.registerRuleset(toRuleset(def));
+  const existing = [...$("ruleset").options].find((o) => o.value === def.id);
+  if (existing) existing.textContent = `${def.name} — custom`;
+  else addOption(def.id, def.name, true);
+}
+for (const def of readStore()) {
+  try { registerCustom(def); } catch { /* stale/invalid entry — skip */ }
+}
+
+const overlay = $("rsOverlay");
+$("rsAdd").addEventListener("click", () => {
+  const selected = $("ruleset").selectedOptions[0];
+  const stored = selected?.dataset.custom
+    ? readStore().find((d) => d.id === selected.value)
+    : null;
+  $("rsJson").value = JSON.stringify(stored ?? EXAMPLE_RULESET, null, 2);
+  $("rsErr").textContent = "";
+  overlay.hidden = false;
+});
+$("rsCancel").addEventListener("click", () => { overlay.hidden = true; });
+overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.hidden = true; });
+$("rsSave").addEventListener("click", () => {
+  let def;
+  try { def = JSON.parse($("rsJson").value); }
+  catch (e) { $("rsErr").textContent = "Not valid JSON: " + e.message; return; }
+  try { registerCustom(def); }
+  catch (e) { $("rsErr").textContent = e.message; return; }
+  writeStore([...readStore().filter((d) => d.id !== def.id), def]);
+  $("ruleset").value = def.id;
+  overlay.hidden = true;
+  syncRemoveLink();
+  run();
+});
+
+function syncRemoveLink() {
+  $("rsRemove").hidden = !$("ruleset").selectedOptions[0]?.dataset.custom;
+}
+$("ruleset").addEventListener("change", syncRemoveLink);
+$("rsRemove").addEventListener("click", () => {
+  const id = $("ruleset").value;
+  writeStore(readStore().filter((d) => d.id !== id));
+  [...$("ruleset").options].find((o) => o.value === id)?.remove();
+  $("ruleset").value = CONFIG.defaultRuleset;
+  syncRemoveLink();
+  run();
+});
 
 // ── Collect inputs → AdInput ─────────────────────────────────────────────────
 function readAd() {
