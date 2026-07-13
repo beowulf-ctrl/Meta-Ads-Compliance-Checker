@@ -2,7 +2,7 @@
 
 **A linter for advertising copy.** Score ads against ad-platform policy — starting with Meta (Facebook/Instagram) Health & Wellness — *before* you launch, so a rejected ad never turns into a banned account.
 
-**▶ Try it live: [meta-ads-compliance-checker.vercel.app](https://meta-ads-compliance-checker.vercel.app)** — the web checker, generated from this engine.
+**▶ Try it live: [meta-ads-compliance-checker.vercel.app](https://meta-ads-compliance-checker.vercel.app)** — the web checker, generated from this engine. ([/maneup](https://meta-ads-compliance-checker.vercel.app/maneup) shows the same checker with a brand preset layered on — a template for your own.)
 
 - 🧩 **Pluggable rulesets** — rules are plain data; add one without touching the engine.
 - 🔌 **Zero dependencies, zero network calls** — runs in Node and the browser.
@@ -152,8 +152,13 @@ ad image to OCR its on-image text) is generated straight from the engine, so
 the rules never fork:
 
 ```bash
-npm run build:web   # writes public/index.html — open it in any browser
+npm run build:web   # writes public/ — open either page in any browser
 ```
+
+Two variants are generated from one template (`web/template.html`), configured
+in `scripts/build-web.mjs`: the generic checker at `public/index.html` and a
+brand-preset example at `public/maneup/index.html`. Adding your own variant is
+one entry in the `VARIANTS` array.
 
 The bundle is self-contained and offline-friendly; only the optional image OCR
 (tesseract.js, lazy-loaded from a CDN on first use) needs a connection.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Maneup — Meta Ad Compliance Checker</title>
+<title>{{TITLE}}</title>
 <style>
   :root{
     --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e9edf3; --muted:#9aa4b2;
@@ -60,10 +60,10 @@
 <body>
 <header>
   <div>
-    <h1>Maneup — Meta Ad Compliance Checker</h1>
-    <div class="sub">Pre-launch screen for Facebook/Instagram ads. Powered by the <b>adlint</b> engine — rules live in one place. Not legal advice.</div>
+    <h1>{{TITLE}}</h1>
+    <div class="sub">{{SUBTITLE}}</div>
   </div>
-  <div class="ruleset">
+  <div class="ruleset" id="rulesetWrap">
     <span>Ruleset</span>
     <select id="ruleset"></select>
   </div>
@@ -105,16 +105,19 @@
 <script>
 const $ = (id) => document.getElementById(id);
 
+// Injected per-variant by scripts/build-web.mjs.
+const CONFIG = "__ADLINT_CONFIG__";
+
 // ── Ruleset picker ────────────────────────────────────────────────────────────
-const RULESET_DEFAULT = "maneup";
-for (const id of adlint.listRulesets()) {
+for (const id of CONFIG.rulesets) {
   const rs = adlint.getRuleset(id);
   const opt = document.createElement("option");
   opt.value = id;
   opt.textContent = rs ? rs.name : id;
-  if (id === RULESET_DEFAULT) opt.selected = true;
+  if (id === CONFIG.defaultRuleset) opt.selected = true;
   $("ruleset").appendChild(opt);
 }
+if (CONFIG.rulesets.length < 2) $("rulesetWrap").style.display = "none";
 
 // ── Collect inputs → AdInput ─────────────────────────────────────────────────
 function readAd() {
