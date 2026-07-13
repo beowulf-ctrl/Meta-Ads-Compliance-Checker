@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maneup — Meta Ad Compliance Checker</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e9edf3; --muted:#9aa4b2;
+    --line:#2a2f3a; --green:#22c55e; --yellow:#eab308; --red:#ef4444; --accent:#6ea8fe;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.5}
+  header{padding:20px 26px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  h1{font-size:19px;margin:0}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .ruleset{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  select{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;font-size:13px}
+  .wrap{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:calc(100vh - 84px)}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .col{padding:22px 26px}
+  .col.left{border-right:1px solid var(--line)}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.04em}
+  textarea,input[type=text]{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;resize:vertical}
+  textarea{min-height:70px}
+  .drop{margin-top:8px;border:1.5px dashed var(--line);border-radius:10px;padding:14px;text-align:center;
+    color:var(--muted);font-size:13px;cursor:pointer;transition:border-color .15s}
+  .drop:hover,.drop.over{border-color:var(--accent);color:var(--ink)}
+  .drop img{max-width:100%;max-height:170px;border-radius:8px;margin-top:10px}
+  .drop .ocr-status{display:block;margin-top:8px;font-size:12px}
+  .checks{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+  .checks label{display:flex;align-items:center;gap:9px;text-transform:none;letter-spacing:0;font-weight:500;
+    color:var(--ink);font-size:13px;margin:0;cursor:pointer}
+  .checks input{width:16px;height:16px;accent-color:var(--accent)}
+  .checks label.resub{padding-top:10px;border-top:1px dashed var(--line)}
+  button.primary{margin-top:20px;width:100%;background:var(--accent);color:#0b1020;border:0;border-radius:10px;
+    padding:13px;font-size:15px;font-weight:700;cursor:pointer}
+  button.primary:hover{filter:brightness(1.07)}
+  .verdict{border-radius:12px;padding:16px 18px;margin-bottom:18px;border:1px solid var(--line);background:var(--panel)}
+  .verdict h2{margin:0 0 4px;font-size:22px;display:flex;align-items:center;gap:10px}
+  .verdict p{margin:0;color:var(--muted);font-size:13px}
+  .dot{width:14px;height:14px;border-radius:50%;display:inline-block;flex:none}
+  .flag{background:var(--panel);border:1px solid var(--line);border-left-width:4px;border-radius:9px;
+    padding:12px 14px;margin-bottom:11px}
+  .flag .tier{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+  .flag .phrase{font-weight:600;margin:5px 0}
+  .flag .policy{font-size:12px;color:var(--muted)}
+  .flag .fix{font-size:13px;margin-top:7px;padding-top:7px;border-top:1px dashed var(--line)}
+  .flag .fix b{color:var(--green)}
+  .t-critical{border-left-color:var(--red)} .t-critical .tier{color:var(--red)}
+  .t-high{border-left-color:var(--yellow)} .t-high .tier{color:var(--yellow)}
+  .t-caution{border-left-color:var(--accent)} .t-caution .tier{color:var(--accent)}
+  .empty{color:var(--muted);font-size:14px;margin-top:40px;text-align:center}
+  .note{font-size:12px;color:var(--muted);margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+  .count{font-size:12px;color:var(--muted);margin-bottom:12px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Maneup — Meta Ad Compliance Checker</h1>
+    <div class="sub">Pre-launch screen for Facebook/Instagram ads. Powered by the <b>adlint</b> engine — rules live in one place. Not legal advice.</div>
+  </div>
+  <div class="ruleset">
+    <span>Ruleset</span>
+    <select id="ruleset"></select>
+  </div>
+</header>
+<div class="wrap">
+  <div class="col left">
+    <label for="primary">Primary text (body copy)</label>
+    <textarea id="primary" placeholder="Paste the main ad copy…"></textarea>
+    <label for="headline">Headline</label>
+    <input type="text" id="headline" placeholder="Headline…">
+    <label for="desc">Description / link description</label>
+    <input type="text" id="desc" placeholder="Description…">
+    <label for="onimage">Text shown IN the image/video</label>
+    <textarea id="onimage" placeholder="Meta's AI reads on-creative text — paste it here, or drop the image below to extract it…"></textarea>
+    <div class="drop" id="drop" title="Drop the ad image here to OCR its text">
+      <span id="dropLabel">📷 Drop the ad image here (or click to choose) — on-image text is extracted automatically. Video: paste its text above.</span>
+      <span class="ocr-status" id="ocrStatus"></span>
+      <input type="file" id="file" accept="image/*" style="display:none">
+    </div>
+    <label for="landing">Landing page copy (or key claims)</label>
+    <textarea id="landing" placeholder="Paste the destination page's headline + main claims. The page is scored too."></textarea>
+    <div class="checks">
+      <label><input type="checkbox" id="ba"> Creative uses before/after or side-by-side transformation images</label>
+      <label><input type="checkbox" id="model"> Product shown next to a full-headed / fit model as the implied result</label>
+      <label><input type="checkbox" id="closeup"> Close-up of a "problem area" (bald spot, receding hairline)</label>
+      <label><input type="checkbox" id="expert"> A named doctor/expert recommends the product for an outcome</label>
+      <label><input type="checkbox" id="nodisc"> Supplement landing page has NO FDA structure-function disclaimer</label>
+      <label class="resub"><input type="checkbox" id="resub"> ⚠️ This is a re-submission of previously rejected creative</label>
+    </div>
+    <button class="primary" onclick="run()">Check this ad</button>
+  </div>
+  <div class="col right">
+    <div id="out"><div class="empty">Fill in the ad on the left — results update live as you type.</div></div>
+  </div>
+</div>
+<script>
+/*__ADLINT_BUNDLE__*/
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ── Ruleset picker ────────────────────────────────────────────────────────────
+const RULESET_DEFAULT = "maneup";
+for (const id of adlint.listRulesets()) {
+  const rs = adlint.getRuleset(id);
+  const opt = document.createElement("option");
+  opt.value = id;
+  opt.textContent = rs ? rs.name : id;
+  if (id === RULESET_DEFAULT) opt.selected = true;
+  $("ruleset").appendChild(opt);
+}
+
+// ── Collect inputs → AdInput ─────────────────────────────────────────────────
+function readAd() {
+  return {
+    primaryText: $("primary").value,
+    headline: $("headline").value,
+    description: $("desc").value,
+    onImageText: $("onimage").value,
+    landingPage: $("landing").value,
+    creative: {
+      beforeAfter: $("ba").checked,
+      modelAsResult: $("model").checked,
+      problemAreaCloseup: $("closeup").checked,
+      expertEndorsement: $("expert").checked,
+      missingDisclaimer: $("nodisc").checked,
+    },
+    isResubmission: $("resub").checked,
+  };
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+const FIELD_LABELS = {
+  primaryText: "Primary text", headline: "Headline", description: "Description",
+  onImageText: "On-image text", landingPage: "Landing page", creative: "Creative",
+};
+const BAND_UI = {
+  red:    { color: "var(--red)",    label: "RED — do not launch",
+            msg: "This is the zone that gets accounts banned. Rewrite the flagged items before launching." },
+  yellow: { color: "var(--yellow)", label: "YELLOW — rewrite first",
+            msg: "Meaningful chance of rejection. Rewrite the flags, then re-check." },
+  green:  { color: "var(--green)",  label: "GREEN — clear to launch",
+            msg: "No critical or high-risk flags found. Still confirm the landing page matches and the disclaimer is present." },
+};
+const BAN_COLOR = { high: "var(--red)", elevated: "var(--yellow)", low: "var(--green)" };
+
+// ── Score + render ───────────────────────────────────────────────────────────
+function run() {
+  const ad = readAd();
+  const hasInput =
+    [ad.primaryText, ad.headline, ad.description, ad.onImageText, ad.landingPage]
+      .some((t) => t && t.trim()) ||
+    Object.values(ad.creative).some(Boolean);
+  if (!hasInput) {
+    $("out").innerHTML = '<div class="empty">Fill in the ad on the left — results update live as you type.</div>';
+    return;
+  }
+
+  const r = adlint.checkAd(ad, { ruleset: $("ruleset").value });
+  const ui = BAND_UI[r.band];
+
+  let html = `<div class="verdict" style="border-color:${ui.color}">
+    <h2><span class="dot" style="background:${ui.color}"></span>${r.rejectionRisk}/10 · ${ui.label}</h2>
+    <p>${ui.msg}</p>
+    <p style="margin-top:8px">Account ban risk: <b style="color:${BAN_COLOR[r.accountBanRisk]}">${r.accountBanRisk[0].toUpperCase()+r.accountBanRisk.slice(1)}</b> — ${esc(r.banReason)}</p>
+  </div>`;
+  html += `<div class="count">${r.flags.length} flag${r.flags.length===1?"":"s"} found — ${r.counts.critical} critical, ${r.counts.high} high, ${r.counts.caution} caution.</div>`;
+
+  if (!r.flags.length) {
+    html += `<div class="empty">No flagged patterns. The checker catches known patterns — a clean result is necessary, not sufficient. Read the ad once more with the one-line test: does it say the product <b>fixes a problem the viewer has</b>, or works <b>like a drug</b>?</div>`;
+  }
+  for (const f of r.flags) {
+    html += `<div class="flag t-${f.tier}">
+      <div class="tier">${f.tier} · ${esc(FIELD_LABELS[f.field] ?? f.field)}</div>
+      <div class="phrase">“${esc(f.match)}”</div>
+      <div class="policy">${esc(f.message)}</div>
+      ${f.fix ? `<div class="fix">Fix: <b>${esc(f.fix)}</b></div>` : ""}
+    </div>`;
+  }
+  html += `<div class="note">Screens for known high-risk patterns from Meta's Health &amp; Wellness policies. A GREEN result lowers risk but is not a guarantee of approval. For nuance the regex can't catch (implied claims, tone, imagery), run the ad through the Claude compliance agent as a second pass.</div>`;
+  $("out").innerHTML = html;
+}
+
+// Live re-check as the user types/clicks.
+let t;
+const queue = () => { clearTimeout(t); t = setTimeout(run, 250); };
+for (const id of ["primary","headline","desc","onimage","landing"]) $(id).addEventListener("input", queue);
+for (const id of ["ba","model","closeup","expert","nodisc","resub","ruleset"]) $(id).addEventListener("change", run);
+
+// ── Image drop → OCR (lazy-loads tesseract.js from CDN; needs internet) ──────
+const drop = $("drop");
+drop.addEventListener("click", () => $("file").click());
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => {
+  e.preventDefault(); drop.classList.remove("over");
+  const f = e.dataTransfer.files?.[0];
+  if (f) handleImage(f);
+});
+$("file").addEventListener("change", (e) => { if (e.target.files?.[0]) handleImage(e.target.files[0]); });
+
+let tesseractLoading = null;
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve();
+  if (!tesseractLoading) {
+    tesseractLoading = new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+      s.onload = res;
+      s.onerror = () => rej(new Error("offline"));
+      document.head.appendChild(s);
+    });
+  }
+  return tesseractLoading;
+}
+
+async function handleImage(file) {
+  if (!file.type.startsWith("image/")) {
+    $("ocrStatus").textContent = "That's not an image — for video, paste the on-screen text manually.";
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  drop.querySelector("img")?.remove();
+  const img = document.createElement("img");
+  img.src = url;
+  drop.appendChild(img);
+  $("ocrStatus").textContent = "Reading on-image text…";
+  try {
+    await loadTesseract();
+    const { data } = await Tesseract.recognize(url, "eng");
+    const text = (data.text || "").trim();
+    if (text) {
+      $("onimage").value = ($("onimage").value.trim() ? $("onimage").value.trim() + "\n" : "") + text;
+      $("ocrStatus").textContent = "Extracted — review/edit the on-image text field, it's scored like copy.";
+      run();
+    } else {
+      $("ocrStatus").textContent = "No readable text found — if the creative has stylized text, type it in manually.";
+    }
+  } catch {
+    $("ocrStatus").textContent = "OCR needs an internet connection (first use downloads the reader). Type the on-image text manually.";
+  }
+}
+</script>
+</body>
+</html>

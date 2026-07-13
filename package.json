@@ -1,0 +1,57 @@
+{
+  "name": "adlint",
+  "version": "0.1.0",
+  "description": "A linter for advertising copy: score ads against ad-platform policy (Meta Health & Wellness and more) before you launch. Pluggable rulesets, no network calls, runs in Node and the browser.",
+  "keywords": [
+    "advertising",
+    "compliance",
+    "meta",
+    "facebook",
+    "instagram",
+    "ad-policy",
+    "linter",
+    "health-and-wellness",
+    "dtc"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:web": "node scripts/build-web.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "esbuild": "^0.28.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/beowulf-ctrl/Meta-Ads-Compliance-Checker.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beowulf-ctrl/Meta-Ads-Compliance-Checker/issues"
+  },
+  "homepage": "https://github.com/beowulf-ctrl/Meta-Ads-Compliance-Checker#readme"
+}
