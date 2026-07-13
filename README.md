@@ -2,6 +2,8 @@
 
 **A linter for advertising copy.** Score ads against ad-platform policy — starting with Meta (Facebook/Instagram) Health & Wellness — *before* you launch, so a rejected ad never turns into a banned account.
 
+**▶ Try it live: [meta-ads-compliance-checker.vercel.app](https://meta-ads-compliance-checker.vercel.app)** — the web checker, generated from this engine.
+
 - 🧩 **Pluggable rulesets** — rules are plain data; add one without touching the engine.
 - 🔌 **Zero dependencies, zero network calls** — runs in Node and the browser.
 - 📊 **Two-dimensional scoring** — a 1–10 rejection risk *and* a separate account-ban risk.
