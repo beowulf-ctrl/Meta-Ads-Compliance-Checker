@@ -21,7 +21,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./scripts/build-web.mjs": "./scripts/build-web.mjs",
+    "./web/template.html": "./web/template.html",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
